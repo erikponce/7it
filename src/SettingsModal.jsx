@@ -32,19 +32,19 @@ const SettingsModal = ({ isOpen, onClose, onSave, currentUrl }) => {
         </div>
 
         <div>
-          <label htmlFor="nodeRedUrl" className="block text-sm font-medium text-gray-700 mb-2">
-            URL del Servidor Node-RED
+          <label htmlFor="apiUrl" className="block text-sm font-medium text-gray-700 mb-2">
+            URL de la API del PLC
           </label>
           <input
             type="text"
-            id="nodeRedUrl"
+            id="apiUrl"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            placeholder="http://192.168.1.10:1880/plc-control"
+            placeholder="http://<IP-DEL-PLC>/api/jsonrpc"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
           />
           <p className="text-xs text-gray-500 mt-2">
-            Introduce la dirección completa del endpoint en tu servidor Node-RED.
+            Introduce la dirección del endpoint JSON-RPC (ej. de un PLC Siemens S7).
           </p>
         </div>
 

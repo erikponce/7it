@@ -8,12 +8,12 @@ const App = () => {
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('info');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [nodeRedUrl, setNodeRedUrl] = useState('');
+  const [apiUrl, setApiUrl] = useState('');
 
   useEffect(() => {
-    const savedUrl = localStorage.getItem('nodeRedUrl');
+    const savedUrl = localStorage.getItem('apiUrl');
     if (savedUrl) {
-      setNodeRedUrl(savedUrl);
+      setApiUrl(savedUrl);
     } else {
       setIsSettingsOpen(true); // Abrir configuración si no hay URL guardada
     }
@@ -29,8 +29,8 @@ const App = () => {
   };
 
   const sendToPLC = async (value, source = 'Manual') => {
-    if (!nodeRedUrl) {
-      showMessage('Error: La URL de Node-RED no está configurada.', 'error');
+    if (!apiUrl) {
+      showMessage('Error: La URL de la API del PLC no está configurada.', 'error');
       setIsSettingsOpen(true);
       return;
     }
@@ -42,25 +42,38 @@ const App = () => {
 
     setStatus(`Enviando valor ${value} (Fuente: ${source}) al PLC...`);
 
+    const jsonRpcPayload = {
+      jsonrpc: '2.0',
+      method: 'writeValue',
+      params: { value, source },
+      id: new Date().getTime(),
+    };
+
     try {
-      const response = await fetch(nodeRedUrl, {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value, source }),
+        body: JSON.stringify(jsonRpcPayload),
       });
 
       if (response.ok) {
-        showMessage(`✅ Señal enviada con éxito: ${value}`, 'success');
-        setStatus(`Última señal enviada: ${value} (Fuente: ${source})`);
+        const jsonResponse = await response.json();
+        if (jsonResponse.error) {
+          showMessage(`❌ Error de API (${jsonResponse.error.code}): ${jsonResponse.error.message}`, 'error');
+          setStatus('Error en la respuesta de la API del PLC.');
+        } else {
+          showMessage(`✅ Señal enviada con éxito: ${value}`, 'success');
+          setStatus(`Última señal enviada: ${value} (Fuente: ${source})`);
+        }
       } else {
         const errorText = await response.text();
-        showMessage(`❌ Error en Node-RED (${response.status}): ${errorText || 'Respuesta inesperada'}`, 'error');
-        setStatus(`Error al enviar el valor ${value}. Revisa el servidor Node-RED.`);
+        showMessage(`❌ Error de Conexión (${response.status}): ${errorText || 'Respuesta inesperada'}`, 'error');
+        setStatus(`Error al enviar el valor ${value}. Revisa el servidor del PLC.`);
       }
     } catch (error) {
-      showMessage(`⚠️ Error de conexión: No se pudo contactar a Node-RED en ${nodeRedUrl}. Revisa la IP/puerto.`, 'error');
+      showMessage(`⚠️ Error de conexión: No se pudo contactar a la API del PLC en ${apiUrl}. Revisa la IP/puerto.`, 'error');
       setStatus(`Error de conexión.`);
-      console.error('Error de conexión con Node-RED:', error);
+      console.error('Error de conexión con la API del PLC:', error);
     }
   };
 
@@ -221,12 +234,12 @@ const App = () => {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         onSave={(url) => {
-          setNodeRedUrl(url);
-          localStorage.setItem('nodeRedUrl', url);
+          setApiUrl(url);
+          localStorage.setItem('apiUrl', url);
           setIsSettingsOpen(false);
           showMessage('Configuración guardada con éxito.', 'success');
         }}
-        currentUrl={nodeRedUrl}
+        currentUrl={apiUrl}
       />
     </div>
   );
